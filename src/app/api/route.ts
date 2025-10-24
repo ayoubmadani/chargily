@@ -1,31 +1,26 @@
-import { NextResponse } from "next/server";
-
 export async function GET() {
   try {
-    const response = await fetch("https://pay.chargily.net/test/api/v2/checkouts", {
+    const options = {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.CHARGILY_SECRET_KEY}`,
+        Authorization: `Bearer test_sk_7avCT3Auv8b1bFjizaJInckyMrB5290pyrQjxA9r`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        amount: 1000,
-        currency: "dzd",
-        success_url: `${process.env.BASE_URL}/success`,
-        failure_url: `${process.env.BASE_URL}/failure`,
-        webhook_url: `${process.env.BASE_URL}/api/webhook`,
-      }),
-    });
+      body: '{"amount":1000,"currency":"dzd","success_url":"https://chargily.vercel.app/success"}',
+    };
 
-    // تحويل الرد إلى JSON
+    const response = await fetch(
+      "https://pay.chargily.net/test/api/v2/checkouts",
+      options
+    );
+
     const data = await response.json();
 
-    return NextResponse.json(data);
-  } catch (error) {
-    console.error("Chargily checkout error:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 }
-    );
+    console.log("this is the checkout url yess");
+    console.log(data?.checkout_url);
+
+    return Response.json({ data });
+  } catch (err) {
+    console.log(err);
   }
 }
