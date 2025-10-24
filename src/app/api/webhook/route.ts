@@ -3,58 +3,53 @@ import crypto from "crypto";
 
 export async function POST(req: Request) {
   try {
+    // 1️⃣ جلب التوقيع من الرؤوس (headers)
     const signature = req.headers.get("signature");
 
-    // If there's no signature, return 400
     if (!signature) {
-      return NextResponse.json(
-        { error: "No signature provided" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "No signature provided" }, { status: 400 });
     }
 
-    // Get the raw payload
+    // 2️⃣ قراءة النص الخام للطلب
     const payload = await req.text();
 
-    // Calculate the signature
+    // 3️⃣ حساب التوقيع المحلي للتحقق من صحة الطلب
     const computedSignature = crypto
-      .createHmac("sha256", process.env.CHARGILY_SECRET_KEY!)
+      .createHmac("sha256", process.env.CHARGILY_SECRET_KEY || "")
       .update(payload)
       .digest("hex");
 
-    // If signatures don't match, return 403
     if (computedSignature !== signature) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 403 });
     }
 
-    // Parse the JSON payload
+    // 4️⃣ تحويل الـ payload إلى JSON
     const event = JSON.parse(payload);
 
-    // Handle different event types
+    // 5️⃣ التعامل مع نوع الحدث (event.type)
     switch (event.type) {
       case "checkout.paid":
-        const checkout = event.data;
-        // Handle successful payment
-        // Add your business logic here
-        console.log("Payment successful:", checkout);
+        const paidCheckout = event.data;
+        console.log("✅ Payment successful:", paidCheckout);
+        // 👉 هنا يمكنك تحديث قاعدة البيانات أو إرسال رسالة شكر للمستخدم
         break;
 
       case "checkout.failed":
         const failedCheckout = event.data;
-        // Handle failed payment
-        // Add your business logic here
-        console.log("Payment failed:", failedCheckout);
+        console.log("❌ Payment failed:", failedCheckout);
+        // 👉 يمكنك تسجيل الفشل أو إعادة المحاولة
         break;
 
       default:
-        console.log("Unhandled event type:", event.type);
+        console.log("⚠️ Unhandled event type:", event.type);
     }
 
+    // 6️⃣ إرجاع رد ناجح إلى Chargily
     return NextResponse.json({ received: true }, { status: 200 });
   } catch (error) {
-    console.error("Webhook error:", error);
+    console.error("🔥 Webhook error:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: error instanceof Error ? error.message : "Internal server error" },
       { status: 500 }
     );
   }
